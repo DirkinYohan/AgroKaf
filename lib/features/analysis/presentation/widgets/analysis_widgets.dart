@@ -12,6 +12,7 @@ extension DiagnosisTexts on DiagnosisStatus {
   String get title => switch (this) {
     DiagnosisStatus.healthy => 'Hoja sana',
     DiagnosisStatus.phoma => 'Posible muerte descendente',
+    DiagnosisStatus.other => 'No corresponde a muerte descendente',
     DiagnosisStatus.inconclusive => 'Resultado no concluyente — toma otra foto',
   };
 
@@ -21,6 +22,9 @@ extension DiagnosisTexts on DiagnosisStatus {
     DiagnosisStatus.phoma =>
       'La hoja muestra señales compatibles con muerte descendente (Phoma). '
           'Pide a un técnico o agrónomo que la revise para confirmarlo.',
+    DiagnosisStatus.other =>
+      'La hoja podría tener otra enfermedad o la imagen no es una hoja de '
+          'café. Consulta a un técnico o agrónomo.',
     DiagnosisStatus.inconclusive =>
       'El modelo no está lo bastante seguro. Toma otra foto con buena luz, '
           'enfocando una sola hoja.',
@@ -94,16 +98,23 @@ class DiagnosisCard extends StatelessWidget {
   }
 }
 
-/// Probability of both classes (healthy and phoma).
+/// Probability of each class. [otherProbability] is null for analyses made
+/// with the 2-class model (v1); its bar is then not shown.
 class ProbabilitiesCard extends StatelessWidget {
   const ProbabilitiesCard({
     super.key,
     required this.healthyProbability,
     required this.phomaProbability,
+    this.otherProbability,
   });
+
+  static const String healthyLabel = 'Sana';
+  static const String phomaLabel = 'Muerte descendente (Phoma)';
+  static const String otherLabel = 'Otra enfermedad o no es hoja de café';
 
   final double healthyProbability;
   final double phomaProbability;
+  final double? otherProbability;
 
   @override
   Widget build(BuildContext context) {
@@ -120,16 +131,24 @@ class ProbabilitiesCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           ConfidenceBar(
-            label: 'Sana',
+            label: healthyLabel,
             value: healthyProbability,
             color: DiagnosisStatus.healthy.color,
           ),
           const SizedBox(height: AppSpacing.md),
           ConfidenceBar(
-            label: 'Muerte descendente (Phoma)',
+            label: phomaLabel,
             value: phomaProbability,
             color: DiagnosisStatus.phoma.color,
           ),
+          if (otherProbability != null) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            ConfidenceBar(
+              label: otherLabel,
+              value: otherProbability!,
+              color: DiagnosisStatus.other.color,
+            ),
+          ],
         ],
       ),
     );

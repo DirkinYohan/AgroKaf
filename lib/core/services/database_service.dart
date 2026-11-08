@@ -9,6 +9,7 @@ typedef DatabaseOpener =
       required String password,
       required int version,
       required OnDatabaseCreateFn onCreate,
+      required OnDatabaseVersionChangeFn onUpgrade,
       required OnDatabaseConfigureFn onConfigure,
     });
 
@@ -17,6 +18,7 @@ Future<Database> _openSqlCipher(
   required String password,
   required int version,
   required OnDatabaseCreateFn onCreate,
+  required OnDatabaseVersionChangeFn onUpgrade,
   required OnDatabaseConfigureFn onConfigure,
 }) {
   return openDatabase(
@@ -24,6 +26,7 @@ Future<Database> _openSqlCipher(
     password: password,
     version: version,
     onCreate: onCreate,
+    onUpgrade: onUpgrade,
     onConfigure: onConfigure,
   );
 }
@@ -38,7 +41,9 @@ class DatabaseService {
        _databasesPath = databasesPath ?? getDatabasesPath;
 
   static const String fileName = 'agrokaf.db';
-  static const int schemaVersion = 1;
+
+  /// 1: initial schema. 2: `analyses.other_prob` (3-class model v2.0.0).
+  static const int schemaVersion = 2;
 
   static const String tableSettings = 'app_settings';
   static const String tableProfile = 'user_profile';
@@ -68,6 +73,7 @@ class DatabaseService {
       version: schemaVersion,
       onConfigure: (Database db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createSchema,
+      onUpgrade: _upgradeSchema,
     );
   }
 
@@ -97,6 +103,7 @@ class DatabaseService {
           status           TEXT    NOT NULL,
           healthy_prob     REAL    NOT NULL,
           phoma_prob       REAL    NOT NULL,
+          other_prob       REAL,
           confidence       REAL    NOT NULL,
           inference_ms     INTEGER NOT NULL,
           model_version    TEXT,
@@ -108,6 +115,17 @@ class DatabaseService {
         'CREATE INDEX idx_analyses_created_at ON $tableAnalyses (created_at DESC)',
       );
     await batch.commit(noResult: true);
+  }
+
+  static Future<void> _upgradeSchema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      // Analyses saved with the 2-class model keep other_prob = NULL.
+      await db.execute('ALTER TABLE $tableAnalyses ADD COLUMN other_prob REAL');
+    }
   }
 
   Future<void> close() async {

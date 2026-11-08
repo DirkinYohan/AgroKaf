@@ -57,7 +57,10 @@ void main() {
 
     final ClassificationResult result = await service.classify(leaf.path);
     expect(
-      result.healthyProbability + result.phomaProbability,
+      result.probabilities.values.fold<double>(
+        0,
+        (double a, double b) => a + b,
+      ),
       closeTo(1, 1e-3),
     );
     expect(result.inferenceMs, greaterThanOrEqualTo(0));

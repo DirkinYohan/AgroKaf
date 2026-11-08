@@ -89,4 +89,38 @@ void main() {
       expect(filterAnalyses(all, query: 'nada'), isEmpty);
     });
   });
+
+  test('"Otras" filter shows only analyses classified as other', () {
+    final Analysis other = Analysis(
+      imagePath: '/o.jpg',
+      status: DiagnosisStatus.other,
+      healthyProbability: 0.05,
+      phomaProbability: 0.05,
+      otherProbability: 0.9,
+      confidence: 0.9,
+      inferenceMs: 1,
+      createdAt: DateTime(2026),
+    );
+    final Analysis healthy = Analysis(
+      imagePath: '/h.jpg',
+      status: DiagnosisStatus.healthy,
+      healthyProbability: 0.9,
+      phomaProbability: 0.1,
+      confidence: 0.9,
+      inferenceMs: 1,
+      createdAt: DateTime(2026),
+    );
+    expect(
+      filterAnalyses(<Analysis>[other, healthy], filter: HistoryFilter.other),
+      <Analysis>[other],
+    );
+    expect(HistoryFilter.values.map((HistoryFilter f) => f.label), <String>[
+      'Todas',
+      'Sanas',
+      'Phoma',
+      'Otras',
+      'No concluyentes',
+    ]);
+    expect(AnalysisStats.of(<Analysis>[other, healthy]).other, 1);
+  });
 }

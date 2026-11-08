@@ -35,53 +35,58 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-/// Quick stats: total analyses, healthy and phoma.
+/// Quick stats in a 2x2 grid: total, healthy, phoma and other.
 class StatsRow extends StatelessWidget {
   const StatsRow({
     super.key,
     required this.total,
     required this.healthy,
     required this.phoma,
+    required this.other,
   });
 
-  static const String _total = 'Análisis';
+  static const String totalLabel = 'Análisis';
+  static const String healthyLabel = 'Sanas';
+  static const String phomaLabel = 'Phoma';
+  static const String otherLabel = 'Otras';
 
   final int total;
   final int healthy;
   final int phoma;
+  final int other;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    Widget row(Widget a, Widget b) => Row(
       children: <Widget>[
-        Expanded(
-          child: _StatTile(
+        Expanded(child: a),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(child: b),
+      ],
+    );
+    _StatTile tile(int value, String label, DiagnosisStatus s) => _StatTile(
+      value: value,
+      label: label,
+      icon: s.icon,
+      color: s.color,
+      background: s.containerColor,
+    );
+    return Column(
+      children: <Widget>[
+        row(
+          _StatTile(
             value: total,
-            label: _total,
+            label: totalLabel,
             icon: Icons.analytics_outlined,
             color: AppColors.secondary,
             background: AppColors.secondaryContainer,
           ),
+          tile(healthy, healthyLabel, DiagnosisStatus.healthy),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatTile(
-            value: healthy,
-            label: 'Sanas',
-            icon: DiagnosisStatus.healthy.icon,
-            color: DiagnosisStatus.healthy.color,
-            background: DiagnosisStatus.healthy.containerColor,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatTile(
-            value: phoma,
-            label: 'Phoma',
-            icon: DiagnosisStatus.phoma.icon,
-            color: DiagnosisStatus.phoma.color,
-            background: DiagnosisStatus.phoma.containerColor,
-          ),
+        const SizedBox(height: AppSpacing.sm),
+        row(
+          tile(phoma, phomaLabel, DiagnosisStatus.phoma),
+          tile(other, otherLabel, DiagnosisStatus.other),
         ),
       ],
     );

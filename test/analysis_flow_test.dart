@@ -111,7 +111,10 @@ void main() {
     expect(find.textContaining('No pudimos'), findsNothing);
     expect(received, isNotNull, reason: 'never reached the result screen');
     expect(
-      received!.result.healthyProbability + received!.result.phomaProbability,
+      received!.result.probabilities.values.fold<double>(
+        0,
+        (double a, double b) => a + b,
+      ),
       closeTo(1, 1e-3),
     );
 

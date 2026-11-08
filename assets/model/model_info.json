@@ -1,14 +1,16 @@
 {
   "model_name": "agrokaf_phoma_detector",
-  "description": "Coffee leaf classifier: 'Muerte descendente' (Phoma) vs healthy",
+  "model_version": "2.0.0",
+  "description": "Coffee leaf classifier: 'Muerte descendente' (Phoma), healthy, and 'other' (rejection class: other diseases such as rust and leaf miner, or non-leaf images). The app only detects muerte descendente; 'other' is never presented as a diagnosis.",
   "architecture": "MobileNetV3Large (ImageNet, transfer learning) + GAP + Dropout(0.3) + Dense softmax",
   "model_file": "model_fp16.tflite",
   "labels_file": "labels.txt",
   "class_names": [
     "healthy",
+    "other",
     "phoma"
   ],
-  "num_classes": 2,
+  "num_classes": 3,
   "input": {
     "shape": [
       1,
@@ -33,73 +35,243 @@
     "type": "softmax",
     "shape": [
       1,
-      2
+      3
     ],
     "dtype": "float32",
     "description": "probability per class, in the order of class_names / labels.txt"
   },
   "test_metrics": {
-    "num_images": 90,
-    "accuracy": 1.0,
-    "loss": 0.0046,
-    "macro_precision": 1.0,
-    "macro_recall": 1.0,
-    "macro_f1": 1.0,
+    "num_images": 207,
+    "accuracy": 0.971,
+    "loss": 0.0514,
+    "macro_precision": 0.9628,
+    "macro_recall": 0.976,
+    "macro_f1": 0.9689,
     "per_class": {
       "healthy": {
-        "precision": 1.0,
+        "precision": 0.925,
         "recall": 1.0,
-        "f1": 1.0,
+        "f1": 0.961,
         "support": 37
       },
+      "other": {
+        "precision": 0.9826,
+        "recall": 0.9658,
+        "f1": 0.9741,
+        "support": 117
+      },
       "phoma": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
+        "precision": 0.9808,
+        "recall": 0.9623,
+        "f1": 0.9714,
         "support": 53
       }
     },
     "confusion_matrix": [
       [
         37,
+        0,
         0
       ],
       [
+        3,
+        113,
+        1
+      ],
+      [
         0,
-        53
+        2,
+        51
       ]
     ]
   },
   "tflite_verification": {
     "fp16": {
       "file": "model_fp16.tflite",
-      "size_mb": 5.774,
-      "test_accuracy": 1.0,
+      "size_mb": 5.776,
+      "test_accuracy": 0.9710144927536232,
       "agreement_with_keras": 1.0,
-      "max_abs_prob_diff": 0.00543975830078125
+      "max_abs_prob_diff": 0.0204961895942688
     },
     "int8_dynamic": {
       "file": "model_int8_dynamic.tflite",
-      "size_mb": 3.161,
-      "test_accuracy": 1.0,
-      "agreement_with_keras": 1.0,
-      "max_abs_prob_diff": 0.0753534585237503
+      "size_mb": 3.162,
+      "test_accuracy": 0.9758454106280193,
+      "agreement_with_keras": 0.9951690821256038,
+      "max_abs_prob_diff": 0.3016761243343353
+    }
+  },
+  "test_by_source": {
+    "field_plant": {
+      "images": 12,
+      "healthy": 0,
+      "other": 12,
+      "phoma": 0
+    },
+    "hand": {
+      "images": 12,
+      "healthy": 0,
+      "other": 12,
+      "phoma": 0
+    },
+    "healthy": {
+      "images": 37,
+      "healthy": 37,
+      "other": 0,
+      "phoma": 0
+    },
+    "miner": {
+      "images": 45,
+      "healthy": 0,
+      "other": 44,
+      "phoma": 1
+    },
+    "phoma": {
+      "images": 53,
+      "healthy": 0,
+      "other": 2,
+      "phoma": 51
+    },
+    "plant_disease": {
+      "images": 12,
+      "healthy": 1,
+      "other": 11,
+      "phoma": 0
+    },
+    "rust": {
+      "images": 31,
+      "healthy": 2,
+      "other": 29,
+      "phoma": 0
+    },
+    "soil": {
+      "images": 5,
+      "healthy": 0,
+      "other": 5,
+      "phoma": 0
+    }
+  },
+  "key_errors": {
+    "rust_to_phoma": {
+      "errors": 0,
+      "images": 31
+    },
+    "miner_to_phoma": {
+      "errors": 1,
+      "images": 45
+    }
+  },
+  "datasets": {
+    "main": {
+      "project": "coffee-leaf-mt7jl",
+      "version": 1,
+      "format": "multiclass",
+      "classes_annotated": [
+        "healthy",
+        "miner",
+        "phoma",
+        "rust"
+      ]
+    },
+    "auxiliary": [
+      {
+        "project": "hand-ovz3z-dppbk",
+        "version": 1,
+        "tag": "hand",
+        "format": "multiclass",
+        "pool_size": 840,
+        "sampled": 75
+      },
+      {
+        "project": "soil-ly5qo-jhvha",
+        "version": 1,
+        "tag": "soil",
+        "format": "multiclass",
+        "pool_size": 38,
+        "sampled": 38
+      },
+      {
+        "project": "plant-disease-w0ogb-r7qy7",
+        "version": 1,
+        "tag": "plant_disease",
+        "format": "multiclass",
+        "pool_size": 2550,
+        "sampled": 75
+      },
+      {
+        "project": "field-plant-jdkjv",
+        "version": 1,
+        "tag": "field_plant",
+        "format": "multiclass",
+        "pool_size": 4925,
+        "sampled": 75
+      }
+    ],
+    "images_per_class": {
+      "train": {
+        "healthy": 286,
+        "other": 735,
+        "phoma": 327
+      },
+      "valid": {
+        "healthy": 77,
+        "other": 191,
+        "phoma": 104
+      },
+      "test": {
+        "healthy": 37,
+        "other": 117,
+        "phoma": 53
+      }
+    },
+    "other_by_source": {
+      "miner": 400,
+      "rust": 380,
+      "hand": 75,
+      "soil": 38,
+      "plant_disease": 75,
+      "field_plant": 75
+    },
+    "skipped": {
+      "plant_disease/augmented_copy_in_source": 6,
+      "soil/augmented_copy_in_source": 116
     }
   },
   "training": {
     "dataset_split_sizes": {
-      "train": 613,
-      "valid": 181,
-      "test": 90
+      "train": 1348,
+      "valid": 372,
+      "test": 207
     },
-    "class_weight": null,
-    "epochs_phase_a": 15,
+    "images_per_class": {
+      "train": {
+        "healthy": 286,
+        "other": 735,
+        "phoma": 327
+      },
+      "valid": {
+        "healthy": 77,
+        "other": 191,
+        "phoma": 104
+      },
+      "test": {
+        "healthy": 37,
+        "other": 117,
+        "phoma": 53
+      }
+    },
+    "class_weight": {
+      "healthy": 1.5711,
+      "other": 0.6113,
+      "phoma": 1.3741
+    },
+    "epochs_phase_a": 6,
     "epochs_phase_b": 15,
     "best_phase": "B (fine-tuning)",
-    "training_time_seconds": 360.7,
+    "training_time_seconds": 449.0,
     "seed": 42
   },
   "tensorflow_version": "2.21.0",
   "keras_version": "3.13.2",
-  "created_at": "2026-11-08T07:23:54+00:00"
+  "created_at": "2026-11-08T17:41:17+00:00"
 }

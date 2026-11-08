@@ -16,6 +16,12 @@ enum DiagnosisStatus {
     color: AppColors.phoma,
     containerColor: AppColors.phomaContainer,
   ),
+  other(
+    label: 'No es muerte descendente',
+    icon: Icons.do_not_disturb_on_outlined,
+    color: AppColors.other,
+    containerColor: AppColors.otherContainer,
+  ),
   inconclusive(
     label: 'No concluyente',
     icon: Icons.help_rounded,

@@ -40,8 +40,10 @@ class HomePage extends ConsumerWidget {
         (ref.watch(analysesProvider).value ?? const <Analysis>[])
             .take(_recentCount)
             .toList(growable: false);
-    final bool modelUnavailable =
-        ref.watch(modelStatusProvider).value == ModelStatus.unavailable;
+    final ModelStatus? modelStatus = ref.watch(modelStatusProvider).value;
+    final bool modelProblem =
+        modelStatus == ModelStatus.unavailable ||
+        modelStatus == ModelStatus.incompatible;
 
     return Scaffold(
       body: SafeArea(
@@ -67,9 +69,9 @@ class HomePage extends ConsumerWidget {
                     startAnalysis(context, ref, ImageSource.gallery),
               ),
             ),
-            if (modelUnavailable) ...<Widget>[
+            if (modelProblem) ...<Widget>[
               const SizedBox(height: AppSpacing.md),
-              const ModelUnavailableBanner(),
+              ModelUnavailableBanner(status: modelStatus!),
             ],
             const SizedBox(height: AppSpacing.lg),
             const SectionTitle(title: _statsTitle),
@@ -78,6 +80,7 @@ class HomePage extends ConsumerWidget {
               total: stats.total,
               healthy: stats.healthy,
               phoma: stats.phoma,
+              other: stats.other,
             ),
             const SizedBox(height: AppSpacing.lg),
             SectionTitle(

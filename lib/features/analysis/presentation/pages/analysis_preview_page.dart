@@ -205,9 +205,10 @@ class _AnalysisPreviewPageState extends ConsumerState<AnalysisPreviewPage> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(_hint, style: textTheme.bodyMedium),
-                if (modelStatus == ModelStatus.unavailable) ...<Widget>[
+                if (modelStatus == ModelStatus.unavailable ||
+                    modelStatus == ModelStatus.incompatible) ...<Widget>[
                   const SizedBox(height: AppSpacing.md),
-                  const ModelUnavailableBanner(),
+                  ModelUnavailableBanner(status: modelStatus),
                 ],
                 const SizedBox(height: AppSpacing.lg),
                 AppButton(
@@ -251,26 +252,39 @@ class _AnalysisPreviewPageState extends ConsumerState<AnalysisPreviewPage> {
   }
 }
 
-/// Shown when the model files are missing from the app.
+/// Shown when the model cannot be used: files missing ("Modelo no
+/// disponible") or classes this app version does not understand
+/// ("Modelo incompatible").
 class ModelUnavailableBanner extends StatelessWidget {
-  const ModelUnavailableBanner({super.key});
+  const ModelUnavailableBanner({super.key, required this.status});
 
-  static const String text =
+  static const String unavailableText =
       'Modelo no disponible: los archivos de inteligencia artificial no están '
       'en la aplicación, así que por ahora no se pueden analizar hojas.';
+  static const String incompatibleText =
+      'Modelo incompatible: los archivos del modelo tienen clases que esta '
+      'versión de AgroKaf no reconoce. Actualiza la aplicación o el modelo.';
+
+  final ModelStatus status;
 
   @override
   Widget build(BuildContext context) {
+    final bool incompatible = status == ModelStatus.incompatible;
     return AppCard(
       color: AppColors.inconclusiveContainer,
       showBorder: false,
       child: Row(
         children: <Widget>[
-          const Icon(Icons.cloud_off_outlined, color: AppColors.inconclusive),
+          Icon(
+            incompatible
+                ? Icons.sync_problem_outlined
+                : Icons.cloud_off_outlined,
+            color: AppColors.inconclusive,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              text,
+              incompatible ? incompatibleText : unavailableText,
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: AppColors.inconclusive),

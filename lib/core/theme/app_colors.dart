@@ -53,6 +53,9 @@ class AppColors {
   static const Color phomaContainer = Color(0xFFFDECEA);
   static const Color inconclusive = Color(0xFF7A4F00);
   static const Color inconclusiveContainer = Color(0xFFFFF2D6);
+  // "other" (another disease or not a coffee leaf): neutral slate gray.
+  static const Color other = Color(0xFF455A64);
+  static const Color otherContainer = Color(0xFFECEFF1);
 
   static const Color shadow = Color(0xFF000000);
   static const Color scrim = Color(0xFF000000);

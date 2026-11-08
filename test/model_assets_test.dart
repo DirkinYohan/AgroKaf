@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:agrokaf/core/constants/analysis_config.dart';
 import 'package:agrokaf/core/models/model_info.dart';
 import 'package:agrokaf/features/analysis/data/image_preprocessor.dart';
+import 'package:agrokaf/features/analysis/domain/classification_result.dart';
 
 /// Checks the bundled model files against the preprocessing contract.
 void main() {
@@ -39,7 +40,8 @@ void main() {
         .where((String l) => l.isNotEmpty)
         .toList();
     expect(labels, info.classNames);
-    expect(labels, <String>['healthy', 'phoma']);
+    expect(ClassificationResult.validateLabels(labels), isNull);
+    expect(labels, <String>['healthy', 'other', 'phoma']);
   }, skip: hasModel ? false : 'model files not copied to assets/model');
 
   test('the .tflite runs on the host with the Dart preprocessing', () {
@@ -53,7 +55,11 @@ void main() {
     interpreter.allocateTensors();
     expect(interpreter.getInputTensor(0).shape, <int>[1, 224, 224, 3]);
     expect(interpreter.getInputTensor(0).type, TensorType.float32);
-    expect(interpreter.getOutputTensor(0).shape, <int>[1, 2]);
+    final int numClasses = labelsFile
+        .readAsLinesSync()
+        .where((String l) => l.trim().isNotEmpty)
+        .length;
+    expect(interpreter.getOutputTensor(0).shape, <int>[1, numClasses]);
 
     final img.Image leafLike = img.Image(width: 300, height: 300);
     img.fill(leafLike, color: img.ColorRgb8(60, 140, 50));
@@ -62,11 +68,15 @@ void main() {
       width: 224,
       height: 224,
     );
-    final Float32List output = Float32List(2);
+    final Float32List output = Float32List(numClasses);
     interpreter.run(input, output);
     interpreter.close();
 
-    expect(output[0] + output[1], closeTo(1.0, 1e-3), reason: 'softmax output');
+    expect(
+      output.fold<double>(0, (double a, double b) => a + b),
+      closeTo(1.0, 1e-3),
+      reason: 'softmax output',
+    );
     expect(output.every((double p) => p >= 0 && p <= 1), isTrue);
   }, skip: hasModel ? false : 'model files not copied to assets/model');
 }

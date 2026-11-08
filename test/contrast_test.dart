@@ -58,6 +58,7 @@ void main() {
       AppColors.healthyContainer,
     ),
     'phoma on phomaContainer': (AppColors.phoma, AppColors.phomaContainer),
+    'other on otherContainer': (AppColors.other, AppColors.otherContainer),
     'inconclusive on inconclusiveContainer': (
       AppColors.inconclusive,
       AppColors.inconclusiveContainer,

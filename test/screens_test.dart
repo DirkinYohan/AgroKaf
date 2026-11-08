@@ -20,6 +20,7 @@ import 'package:agrokaf/features/analysis/presentation/providers/analysis_provid
 import 'package:agrokaf/features/analysis/presentation/widgets/analysis_widgets.dart';
 import 'package:agrokaf/features/history/presentation/pages/history_page.dart';
 import 'package:agrokaf/features/home/presentation/pages/home_page.dart';
+import 'package:agrokaf/features/home/presentation/widgets/home_sections.dart';
 import 'package:agrokaf/features/profile/domain/entities/user_profile.dart';
 import 'package:agrokaf/features/profile/presentation/providers/profile_providers.dart';
 
@@ -37,6 +38,17 @@ Analysis _analysis(int id, DiagnosisStatus status, {String lot = ''}) =>
     );
 
 final List<Analysis> _history = <Analysis>[
+  Analysis(
+    id: 4,
+    imagePath: '/missing/4.jpg',
+    status: DiagnosisStatus.other,
+    healthyProbability: 0.05,
+    phomaProbability: 0.05,
+    otherProbability: 0.9,
+    confidence: 0.9,
+    inferenceMs: 70,
+    createdAt: DateTime(2026, 11, 8, 11),
+  ),
   _analysis(3, DiagnosisStatus.phoma, lot: 'Lote alto'),
   _analysis(2, DiagnosisStatus.healthy),
   _analysis(1, DiagnosisStatus.inconclusive),
@@ -100,11 +112,16 @@ void main() {
       expect(find.text('Analiza una planta'), findsOneWidget);
       expect(find.text('Cámara'), findsOneWidget);
       expect(find.text('Galería'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget); // total analyses
-      expect(
+      expect(find.text('4'), findsOneWidget); // total analyses
+      expect(find.text(StatsRow.otherLabel), findsOneWidget);
+      // Recent tiles (newest first) are below the stats grid.
+      await tester.scrollUntilVisible(
         find.text(DiagnosisStatus.phoma.label),
-        findsOneWidget,
-      ); // recent tile
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(DiagnosisStatus.other.label), findsOneWidget);
+      expect(find.text(DiagnosisStatus.phoma.label), findsOneWidget);
     });
 
     testWidgets('meets accessibility guidelines', (WidgetTester tester) async {
@@ -180,7 +197,7 @@ void main() {
         imagePath: photo.path,
         createdAt: DateTime(2026, 11, 8, 9, 30),
         result: ClassificationResult.fromOutput(
-          labels: const <String>['healthy', 'phoma'],
+          labels: const <String>['healthy', 'other', 'phoma'],
           output: output,
           preprocessMs: 30,
           inferenceMs: 95,
@@ -203,7 +220,7 @@ void main() {
     ) async {
       await _pump(
         tester,
-        resultFor(<double>[0.08, 0.92]),
+        resultFor(<double>[0.04, 0.04, 0.92]),
         overrides: resultOverrides(),
       );
       expect(find.text(DiagnosisStatus.phoma.title), findsOneWidget);
@@ -227,20 +244,57 @@ void main() {
     ) async {
       await _pump(
         tester,
-        resultFor(<double>[0.4, 0.6]),
+        resultFor(<double>[0.3, 0.3, 0.4]),
         overrides: resultOverrides(),
       );
       expect(find.text(DiagnosisStatus.inconclusive.title), findsOneWidget);
       expect(find.text(DiagnosisStatus.phoma.title), findsNothing);
     });
 
+    testWidgets('"other" result: neutral title, message and 3 probabilities', (
+      WidgetTester tester,
+    ) async {
+      await _pump(
+        tester,
+        resultFor(<double>[0.05, 0.9, 0.05]),
+        overrides: resultOverrides(),
+      );
+      expect(find.text('No corresponde a muerte descendente'), findsOneWidget);
+      expect(
+        find.textContaining('podría tener otra enfermedad'),
+        findsOneWidget,
+      );
+      expect(find.text(DiagnosisStatus.phoma.title), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text(ProbabilitiesCard.otherLabel),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text(ProbabilitiesCard.healthyLabel), findsOneWidget);
+      expect(find.text(ProbabilitiesCard.phomaLabel), findsOneWidget);
+      expect(find.text(ProbabilitiesCard.otherLabel), findsOneWidget);
+    });
+
     testWidgets('meets accessibility guidelines', (WidgetTester tester) async {
       await _pump(
         tester,
-        resultFor(<double>[0.95, 0.05]),
+        resultFor(<double>[0.9, 0.05, 0.05]),
         overrides: resultOverrides(),
       );
       await _expectAccessible(tester);
     });
+  });
+
+  testWidgets('old 2-class analyses show only two probability bars', (
+    WidgetTester tester,
+  ) async {
+    await _pump(
+      tester,
+      const Scaffold(
+        body: ProbabilitiesCard(healthyProbability: 0.1, phomaProbability: 0.9),
+      ),
+    );
+    expect(find.text(ProbabilitiesCard.phomaLabel), findsOneWidget);
+    expect(find.text(ProbabilitiesCard.otherLabel), findsNothing);
   });
 }

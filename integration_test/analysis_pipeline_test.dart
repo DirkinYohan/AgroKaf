@@ -91,7 +91,10 @@ void main() {
     });
     expect(error, isNull, reason: 'classify failed: $error\n$stack');
     expect(
-      result!.healthyProbability + result!.phomaProbability,
+      result!.probabilities.values.fold<double>(
+        0,
+        (double a, double b) => a + b,
+      ),
       closeTo(1, 1e-3),
     );
     // ignore: avoid_print

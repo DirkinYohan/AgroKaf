@@ -104,6 +104,7 @@ class HistoryDetailPage extends ConsumerWidget {
                 ProbabilitiesCard(
                   healthyProbability: analysis.healthyProbability,
                   phomaProbability: analysis.phomaProbability,
+                  otherProbability: analysis.otherProbability,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 AppCard(

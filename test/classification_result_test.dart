@@ -53,4 +53,72 @@ void main() {
   test('mismatched label count is rejected', () {
     expect(() => run(labels, <double>[1.0]), throwsArgumentError);
   });
+
+  group('3-class model (healthy, other, phoma)', () {
+    const List<String> labels3 = <String>['healthy', 'other', 'phoma'];
+
+    test('confident other -> other, with its probability', () {
+      final ClassificationResult r = run(labels3, <double>[0.05, 0.9, 0.05]);
+      expect(r.status, DiagnosisStatus.other);
+      expect(r.otherProbability, closeTo(0.9, 1e-9));
+    });
+
+    test('confident phoma still -> phoma', () {
+      expect(
+        run(labels3, <double>[0.1, 0.1, 0.8]).status,
+        DiagnosisStatus.phoma,
+      );
+    });
+
+    test('below threshold -> inconclusive even if "other" is on top', () {
+      expect(
+        run(labels3, <double>[0.2, 0.5, 0.3]).status,
+        DiagnosisStatus.inconclusive,
+      );
+    });
+
+    test('2-class labels have no "other" probability', () {
+      expect(run(labels, <double>[0.9, 0.1]).otherProbability, isNull);
+    });
+  });
+
+  group('validateLabels', () {
+    test('accepts the 2-class and 3-class models', () {
+      expect(
+        ClassificationResult.validateLabels(<String>['healthy', 'phoma']),
+        isNull,
+      );
+      expect(
+        ClassificationResult.validateLabels(<String>[
+          'healthy',
+          'other',
+          'phoma',
+        ]),
+        isNull,
+      );
+    });
+
+    test('rejects unknown, missing or duplicated class names', () {
+      expect(
+        ClassificationResult.validateLabels(<String>[
+          'healthy',
+          'phoma',
+          'rust',
+        ]),
+        contains('rust'),
+      );
+      expect(
+        ClassificationResult.validateLabels(<String>['healthy', 'other']),
+        contains('phoma'),
+      );
+      expect(
+        ClassificationResult.validateLabels(<String>[
+          'healthy',
+          'phoma',
+          'phoma',
+        ]),
+        isNotNull,
+      );
+    });
+  });
 }

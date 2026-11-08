@@ -16,8 +16,10 @@ Cooperativa de Colombia.
 - **Private by design (Ley 1581 de 2012).** Consent screen before any data is
   collected, encrypted local database (SQLCipher), photos stored privately
   without EXIF/GPS, "delete all my data", no analytics, no cloud backups.
-- **Model:** MobileNetV3Large (transfer learning), float16 TFLite, classes
-  `healthy` / `phoma`. Trained in `../training/agrokaf_model.ipynb`.
+- **Model v2.0.0:** MobileNetV3Large (transfer learning), float16 TFLite,
+  3 classes `healthy` / `other` / `phoma`. `other` is a **rejection class**
+  (other diseases such as rust and leaf miner, or images that are not coffee
+  leaves). Trained in `../training/agrokaf_model.ipynb`.
 - **Platforms:** Android 7.0+ (API 24) first; iOS-compatible code base.
 
 ## Requirements
@@ -42,7 +44,7 @@ Copy the three files produced by the training notebook (Google Drive
 
 ```
 assets/model/
-├── labels.txt          # healthy, phoma (model output order)
+├── labels.txt          # healthy, other, phoma (model output order)
 ├── model_fp16.tflite   # the classifier
 └── model_info.json     # preprocessing contract + test metrics
 ```
@@ -101,9 +103,29 @@ Read from `assets/model/model_info.json` and implemented in
    `tf.image.resize` (half-pixel centers) used during training.
 3. Float32 tensor `[1, 224, 224, 3]` with **raw pixel values 0–255** (no
    division by 255: the model normalizes internally).
-4. Output: softmax `[1, 2]` in `labels.txt` order. Labels are matched by name.
+4. Output: softmax `[1, N]` in `labels.txt` order (N = 3 for model v2).
+   Labels are always matched **by name**, never by position.
 5. If the top probability is below **0.70** the result is
-   "No concluyente — toma otra foto".
+   "Resultado no concluyente — toma otra foto".
+
+### Results shown to the user
+
+| Model output (top class, >= 0.70) | Result in the app |
+|---|---|
+| `healthy` | Hoja sana |
+| `phoma` | Posible muerte descendente |
+| `other` | No corresponde a muerte descendente (neutral gray; the app does **not** diagnose other diseases) |
+| any class below 0.70 | Resultado no concluyente — toma otra foto |
+
+The result screen shows the probability of every class. Analyses saved with
+the 2-class v1 model (no `other` probability) still display correctly: the
+database migrates from schema 1 to 2 by adding a nullable `other_prob`
+column.
+
+**Compatibility.** The app accepts the 2-class (`healthy`, `phoma`) and the
+3-class (`healthy`, `other`, `phoma`) models. If `labels.txt` contains a class
+name it does not know, it shows **"Modelo incompatible"** instead of
+analysing; if the files are missing it shows **"Modelo no disponible"**.
 
 The interpreter is loaded once at startup and inference runs in a background
 isolate. A quick photo-quality check (brightness and blur, Laplacian
@@ -159,7 +181,9 @@ flutter test
 
 Covered: preprocessing contract (TensorFlow bilinear values, RGB, raw 0–255,
 stretch), the real `.tflite` running with the Dart preprocessing, threshold
-and label mapping, photo quality, EXIF/GPS removal, database repositories
+and label mapping (including `other` and incompatible label files), the
+schema 1 -> 2 migration with old analyses, the preview -> result flow with
+the real model, photo quality, EXIF/GPS removal, database repositories
 (real SQLite via FFI), router redirects, profile validation, WCAG contrast of
 every color pair, and widget tests of the key screens including Flutter's
 accessibility guidelines and 2× text size.

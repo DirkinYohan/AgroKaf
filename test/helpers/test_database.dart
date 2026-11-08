@@ -36,12 +36,14 @@ class TestStorage {
             required String password,
             required int version,
             required OnDatabaseCreateFn onCreate,
+            required OnDatabaseVersionChangeFn onUpgrade,
             required OnDatabaseConfigureFn onConfigure,
           }) => databaseFactoryFfi.openDatabase(
             path,
             options: OpenDatabaseOptions(
               version: version,
               onCreate: onCreate,
+              onUpgrade: onUpgrade,
               onConfigure: onConfigure,
             ),
           ),

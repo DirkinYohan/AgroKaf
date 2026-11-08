@@ -13,7 +13,33 @@ class ClassificationResult {
   });
 
   static const String healthyLabel = 'healthy';
+  static const String otherLabel = 'other';
   static const String phomaLabel = 'phoma';
+
+  /// Class names the app understands. `other` is optional (the 2-class v1
+  /// model has no rejection class); `healthy` and `phoma` are required.
+  static const Set<String> knownLabels = <String>{
+    healthyLabel,
+    otherLabel,
+    phomaLabel,
+  };
+  static const Set<String> requiredLabels = <String>{healthyLabel, phomaLabel};
+
+  /// Returns a problem description if [labels] cannot be used, else null.
+  static String? validateLabels(List<String> labels) {
+    final Set<String> unknown = labels.toSet().difference(knownLabels);
+    if (unknown.isNotEmpty) {
+      return 'unknown class name(s) in labels.txt: ${unknown.join(', ')}';
+    }
+    final Set<String> missing = requiredLabels.difference(labels.toSet());
+    if (missing.isNotEmpty) {
+      return 'missing class name(s) in labels.txt: ${missing.join(', ')}';
+    }
+    if (labels.toSet().length != labels.length) {
+      return 'duplicated class names in labels.txt';
+    }
+    return null;
+  }
 
   /// Softmax probability per label (labels.txt order is preserved).
   final Map<String, double> probabilities;
@@ -25,6 +51,9 @@ class ClassificationResult {
 
   double get healthyProbability => probabilities[healthyLabel] ?? 0;
   double get phomaProbability => probabilities[phomaLabel] ?? 0;
+
+  /// Null when the model has no `other` class.
+  double? get otherProbability => probabilities[otherLabel];
 
   /// Maps the model output to a diagnosis. Labels are matched by NAME, never
   /// by index, so a different label order cannot swap the result.
@@ -50,16 +79,14 @@ class ClassificationResult {
     final String topLabel = labels[top];
     final double confidence = output[top];
 
-    final DiagnosisStatus status;
-    if (confidence < threshold) {
-      status = DiagnosisStatus.inconclusive;
-    } else if (topLabel == phomaLabel) {
-      status = DiagnosisStatus.phoma;
-    } else if (topLabel == healthyLabel) {
-      status = DiagnosisStatus.healthy;
-    } else {
-      status = DiagnosisStatus.inconclusive;
-    }
+    final DiagnosisStatus status = confidence < threshold
+        ? DiagnosisStatus.inconclusive
+        : switch (topLabel) {
+            phomaLabel => DiagnosisStatus.phoma,
+            healthyLabel => DiagnosisStatus.healthy,
+            otherLabel => DiagnosisStatus.other,
+            _ => DiagnosisStatus.inconclusive,
+          };
 
     return ClassificationResult(
       probabilities: probabilities,

@@ -8,6 +8,7 @@ class Analysis {
     required this.status,
     required this.healthyProbability,
     required this.phomaProbability,
+    this.otherProbability,
     required this.confidence,
     required this.inferenceMs,
     required this.createdAt,
@@ -21,6 +22,10 @@ class Analysis {
   final DiagnosisStatus status;
   final double healthyProbability;
   final double phomaProbability;
+
+  /// Null for analyses made with the 2-class model (v1), which had no
+  /// "other" class.
+  final double? otherProbability;
   final double confidence;
   final int inferenceMs;
   final DateTime createdAt;
@@ -37,6 +42,7 @@ class Analysis {
     'status': status.name,
     'healthy_prob': healthyProbability,
     'phoma_prob': phomaProbability,
+    'other_prob': otherProbability,
     'confidence': confidence,
     'inference_ms': inferenceMs,
     'model_version': modelVersion,
@@ -54,6 +60,7 @@ class Analysis {
     ),
     healthyProbability: (row['healthy_prob']! as num).toDouble(),
     phomaProbability: (row['phoma_prob']! as num).toDouble(),
+    otherProbability: (row['other_prob'] as num?)?.toDouble(),
     confidence: (row['confidence']! as num).toDouble(),
     inferenceMs: row['inference_ms']! as int,
     modelVersion: row['model_version'] as String?,
@@ -69,12 +76,14 @@ class AnalysisStats {
     this.total = 0,
     this.healthy = 0,
     this.phoma = 0,
+    this.other = 0,
     this.inconclusive = 0,
   });
 
   final int total;
   final int healthy;
   final int phoma;
+  final int other;
   final int inconclusive;
 
   factory AnalysisStats.of(List<Analysis> analyses) {
@@ -84,6 +93,7 @@ class AnalysisStats {
       total: analyses.length,
       healthy: count(DiagnosisStatus.healthy),
       phoma: count(DiagnosisStatus.phoma),
+      other: count(DiagnosisStatus.other),
       inconclusive: count(DiagnosisStatus.inconclusive),
     );
   }

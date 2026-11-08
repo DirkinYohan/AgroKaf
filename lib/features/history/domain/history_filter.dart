@@ -6,6 +6,7 @@ enum HistoryFilter {
   all('Todas', null),
   healthy('Sanas', DiagnosisStatus.healthy),
   phoma('Phoma', DiagnosisStatus.phoma),
+  other('Otras', DiagnosisStatus.other),
   inconclusive('No concluyentes', DiagnosisStatus.inconclusive);
 
   const HistoryFilter(this.label, this.status);

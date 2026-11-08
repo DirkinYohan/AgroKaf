@@ -80,6 +80,7 @@ class _AnalysisResultPageState extends ConsumerState<AnalysisResultPage> {
               status: _result.status,
               healthyProbability: _result.healthyProbability,
               phomaProbability: _result.phomaProbability,
+              otherProbability: _result.otherProbability,
               confidence: _result.confidence,
               inferenceMs: _result.inferenceMs,
               modelVersion: widget.draft.modelVersion,
@@ -134,6 +135,7 @@ class _AnalysisResultPageState extends ConsumerState<AnalysisResultPage> {
           ProbabilitiesCard(
             healthyProbability: _result.healthyProbability,
             phomaProbability: _result.phomaProbability,
+            otherProbability: _result.otherProbability,
           ),
           const SizedBox(height: AppSpacing.md),
           AppCard(

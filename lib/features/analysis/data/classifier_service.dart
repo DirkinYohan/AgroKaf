@@ -10,11 +10,16 @@ import 'package:agrokaf/core/models/model_info.dart';
 import 'package:agrokaf/features/analysis/data/image_preprocessor.dart';
 import 'package:agrokaf/features/analysis/domain/classification_result.dart';
 
-enum ModelStatus { notLoaded, loading, ready, unavailable }
+/// `unavailable`: model files missing or broken. `incompatible`: the files
+/// load but describe classes this app version does not understand.
+enum ModelStatus { notLoaded, loading, ready, unavailable, incompatible }
 
 /// The model files are missing or do not match model_info.json.
 class ModelUnavailableException implements Exception {
-  const ModelUnavailableException(this.reason);
+  const ModelUnavailableException(this.reason, {this.incompatible = false});
+
+  /// True when labels.txt has class names the app does not know.
+  final bool incompatible;
 
   final String reason;
 
@@ -62,6 +67,10 @@ class ClassifierService {
               .map((String l) => l.trim())
               .where((String l) => l.isNotEmpty)
               .toList(growable: false);
+      final String? labelProblem = ClassificationResult.validateLabels(labels);
+      if (labelProblem != null) {
+        throw ModelUnavailableException(labelProblem, incompatible: true);
+      }
       if (info.classNames.isNotEmpty &&
           info.classNames.join(',') != labels.join(',')) {
         throw const ModelUnavailableException(
@@ -86,7 +95,9 @@ class ClassifierService {
       _labels = labels;
       _status = ModelStatus.ready;
     } catch (e) {
-      _status = ModelStatus.unavailable;
+      _status = e is ModelUnavailableException && e.incompatible
+          ? ModelStatus.incompatible
+          : ModelStatus.unavailable;
       _unavailableReason = e is ModelUnavailableException
           ? e.reason
           : e.runtimeType.toString();
