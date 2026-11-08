@@ -49,7 +49,7 @@ class ImageService {
   /// Re-encodes [sourcePath] without metadata and returns the new file path.
   Future<String> savePrivateImage(String sourcePath, ImageFolder folder) async {
     final Uint8List bytes = await File(sourcePath).readAsBytes();
-    final Uint8List? cleaned = await Isolate.run(() => sanitizeImage(bytes));
+    final Uint8List? cleaned = await sanitizeInBackground(bytes);
     if (cleaned == null) throw const InvalidImageException();
 
     final Directory dir = await folderPath(folder);
@@ -59,6 +59,11 @@ class ImageService {
     await output.writeAsBytes(cleaned, flush: true);
     return output.path;
   }
+
+  /// Runs [sanitizeImage] in a background isolate. Static so the closure
+  /// captures only [bytes].
+  static Future<Uint8List?> sanitizeInBackground(Uint8List bytes) =>
+      Isolate.run(() => sanitizeImage(bytes));
 
   /// Pure function (runs in a background isolate): orientation fix, resize,
   /// metadata removal and JPEG compression. Returns null if not an image.

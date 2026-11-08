@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,9 +91,10 @@ class _AnalysisPreviewPageState extends ConsumerState<AnalysisPreviewPage> {
 
       // 2. Quick quality check.
       final Uint8List bytes = await File(workingPath).readAsBytes();
-      final PhotoQualityReport report = await Isolate.run(
-        () => PhotoQualityAnalyzer.analyze(bytes),
-      );
+      // Static helper: a closure created here would capture this State
+      // (via the setState closures) and cannot be sent to an isolate.
+      final PhotoQualityReport report =
+          await PhotoQualityAnalyzer.analyzeInBackground(bytes);
       if (!report.isGood) {
         if (!mounted) return;
         setState(() => _stage = _Stage.idle);
@@ -128,7 +128,12 @@ class _AnalysisPreviewPageState extends ConsumerState<AnalysisPreviewPage> {
     } on InvalidImageException {
       await images.deleteImage(workingPath);
       _fail(_invalidImage);
-    } catch (_) {
+    } catch (error, stack) {
+      // Debug builds only: the message may contain file paths.
+      if (kDebugMode) {
+        debugPrint('AgroKaf analysis failed: $error');
+        debugPrintStack(stackTrace: stack);
+      }
       // Leaving the screen mid-analysis also lands here or returns early;
       // any photo left behind is removed at the next startup.
       await images.deleteImage(workingPath);

@@ -1,3 +1,4 @@
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -29,6 +30,11 @@ class PhotoQualityReport {
 /// the Laplacian). Pure and synchronous: run it in a background isolate.
 class PhotoQualityAnalyzer {
   PhotoQualityAnalyzer._();
+
+  /// Runs [analyze] in a background isolate.
+  static Future<PhotoQualityReport> analyzeInBackground(
+    Uint8List encodedImage,
+  ) => Isolate.run(() => analyze(encodedImage));
 
   static PhotoQualityReport analyze(Uint8List encodedImage) {
     final img.Image? decoded = img.decodeImage(encodedImage);

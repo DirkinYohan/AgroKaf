@@ -135,8 +135,10 @@ class ClassifierService {
     final int height = info.inputHeight;
 
     final Stopwatch preprocessWatch = Stopwatch()..start();
-    final Float32List input = await Isolate.run(
-      () => ImagePreprocessor.preprocess(bytes, width: width, height: height),
+    final Float32List input = await _preprocessInBackground(
+      bytes,
+      width,
+      height,
     );
     preprocessWatch.stop();
 
@@ -152,6 +154,16 @@ class ClassifierService {
       inferenceMs: inferenceWatch.elapsedMilliseconds,
     );
   }
+
+  /// Static on purpose: the isolate closure must capture only these
+  /// arguments, never `this` (which holds the interpreter and ports).
+  static Future<Float32List> _preprocessInBackground(
+    Uint8List bytes,
+    int width,
+    int height,
+  ) => Isolate.run(
+    () => ImagePreprocessor.preprocess(bytes, width: width, height: height),
+  );
 
   Future<void> dispose() async {
     await _isolateInterpreter?.close();
