@@ -1,8 +1,9 @@
+/// The farmer's profile. Only [userName] and [municipality] are required.
 class UserProfile {
   const UserProfile({
-    this.userName = '',
+    required this.userName,
     this.farmName = '',
-    this.municipality = '',
+    this.municipality = defaultMunicipality,
     this.coffeeVariety = '',
     this.profileImagePath,
   });
@@ -13,14 +14,21 @@ class UserProfile {
   final String coffeeVariety;
   final String? profileImagePath;
 
+  static const String defaultMunicipality = 'Taminango';
   static const String coffeeVarietyOther = 'Otra';
+
+  static const int nameMinLength = 2;
+  static const int nameMaxLength = 50;
+  static const int textMaxLength = 60;
 
   static const List<String> coffeeVarieties = <String>[
     'Castillo',
     'Caturra',
     'Colombia',
+    'Cenicafé 1',
     'Tabi',
-    'Bourb\u00f3n',
+    'Típica',
+    'Borbón',
     coffeeVarietyOther,
   ];
 
@@ -56,10 +64,10 @@ class UserProfile {
 
   @override
   int get hashCode => Object.hash(
-        userName,
-        farmName,
-        municipality,
-        coffeeVariety,
-        profileImagePath,
-      );
+    userName,
+    farmName,
+    municipality,
+    coffeeVariety,
+    profileImagePath,
+  );
 }

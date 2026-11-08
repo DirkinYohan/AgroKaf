@@ -1,140 +1,118 @@
 import 'package:flutter/material.dart';
-import 'package:agrokaf/core/constants/app_routes.dart';
-import 'package:agrokaf/core/router/app_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:agrokaf/core/app_state/app_state.dart';
+import 'package:agrokaf/core/app_state/app_state_notifier.dart';
 import 'package:agrokaf/core/theme/app_colors.dart';
 import 'package:agrokaf/core/theme/app_spacing.dart';
 import 'package:agrokaf/core/widgets/animated_loading_dots.dart';
-import 'package:agrokaf/features/splash/presentation/widgets/splash_background_decorations.dart';
+import 'package:agrokaf/core/widgets/state_views.dart';
 import 'package:agrokaf/features/splash/presentation/widgets/splash_logo_container.dart';
 
-class SplashPage extends StatefulWidget {
+/// First screen: shows the logo while the app starts (encrypted database,
+/// settings; the AI model in Phase 3). The router leaves this screen on its
+/// own once the app state is ready.
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
+  static const String tagline =
+      'Tu aliado inteligente para detectar enfermedades del café';
+  static const String startupErrorTitle = 'No pudimos iniciar AgroKaf';
+  static const String startupErrorMessage =
+      'Cierra la aplicación y vuelve a abrirla. Si el problema continúa, '
+      'reinicia tu celular.';
+
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
+class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
-  static const Duration _splashDuration = Duration(seconds: 3);
+  late final AnimationController _entrance = AnimationController(
+    vsync: this,
+    duration: AppDurations.entrance,
+  )..forward();
 
-  late final AnimationController _controller;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _entrance,
+    curve: Curves.easeOut,
+  );
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.04),
+    end: Offset.zero,
+  ).animate(_fade);
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AppAnimations.fadeInUp,
-    );
-    _fadeAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.035),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
-    _scheduleNavigation();
+    Future<void>.microtask(_start);
   }
+
+  void _start() => ref.read(appStateProvider.notifier).bootstrap();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entrance.dispose();
     super.dispose();
-  }
-
-  void _scheduleNavigation() {
-    Future<void>.delayed(_splashDuration, () {
-      if (!mounted) return;
-      AppRouter.pushReplacement(context, AppRoutes.onboarding);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final bool failed =
+        ref.watch(appStateProvider.select((AppState s) => s.status)) ==
+        StartupStatus.failed;
     return Scaffold(
-      backgroundColor: AppColors.surfaceContainerLowest,
-      body: Stack(
-        children: <Widget>[
-          const SplashBackgroundDecorations(),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.marginMobile,
-                vertical: AppSpacing.xl,
-              ),
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  return SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          children: <Widget>[
-                            const Spacer(flex: 1),
-                            Expanded(
-                              flex: 4,
-                              child: _buildAnimatedContent(context),
-                            ),
-                            const Spacer(flex: 2),
-                          ],
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment(0.9, -0.9),
+            radius: 1.4,
+            colors: <Color>[AppColors.primaryContainer, AppColors.background],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: FadeTransition(
+                opacity: _fade,
+                child: SlideTransition(
+                  position: _slide,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const SplashLogoContainer(),
+                      const SizedBox(height: AppSpacing.lg),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: AppSizes.illustrationMax,
+                        ),
+                        child: Text(
+                          SplashPage.tagline,
+                          textAlign: TextAlign.center,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnimatedContent(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: _buildCenterContent(context),
-      ),
-    );
-  }
-
-  Widget _buildCenterContent(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const SplashLogoContainer(),
-        const SizedBox(height: AppSpacing.lg),
-        Center(
-          child: SizedBox(
-            width: 360,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              child: Text(
-                'Tu aliado inteligente para detectar enfermedades del caf\u00e9',
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.primaryContainer,
-                  fontWeight: FontWeight.w500,
+                      const SizedBox(height: AppSpacing.xl),
+                      if (failed)
+                        ErrorView(
+                          title: SplashPage.startupErrorTitle,
+                          message: SplashPage.startupErrorMessage,
+                          onRetry: _start,
+                        )
+                      else
+                        const AnimatedLoadingDots(),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        const AnimatedLoadingDots(),
-      ],
+      ),
     );
   }
 }

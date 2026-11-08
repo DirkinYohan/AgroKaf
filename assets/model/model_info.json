@@ -1,0 +1,105 @@
+{
+  "model_name": "agrokaf_phoma_detector",
+  "description": "Coffee leaf classifier: 'Muerte descendente' (Phoma) vs healthy",
+  "architecture": "MobileNetV3Large (ImageNet, transfer learning) + GAP + Dropout(0.3) + Dense softmax",
+  "model_file": "model_fp16.tflite",
+  "labels_file": "labels.txt",
+  "class_names": [
+    "healthy",
+    "phoma"
+  ],
+  "num_classes": 2,
+  "input": {
+    "shape": [
+      1,
+      224,
+      224,
+      3
+    ],
+    "layout": "NHWC",
+    "dtype": "float32",
+    "value_range": [
+      0,
+      255
+    ],
+    "normalization": "none - pass raw pixel values; normalization is built into the model",
+    "color_order": "RGB",
+    "resize_method": "bilinear",
+    "resize_mode": "direct resize (stretch) to 224x224, no crop, no padding"
+  },
+  "resize_method": "bilinear",
+  "roboflow_preprocessing": "FILL_ME (e.g. Stretch to 640x640)",
+  "output": {
+    "type": "softmax",
+    "shape": [
+      1,
+      2
+    ],
+    "dtype": "float32",
+    "description": "probability per class, in the order of class_names / labels.txt"
+  },
+  "test_metrics": {
+    "num_images": 90,
+    "accuracy": 1.0,
+    "loss": 0.0046,
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "macro_f1": 1.0,
+    "per_class": {
+      "healthy": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 37
+      },
+      "phoma": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 53
+      }
+    },
+    "confusion_matrix": [
+      [
+        37,
+        0
+      ],
+      [
+        0,
+        53
+      ]
+    ]
+  },
+  "tflite_verification": {
+    "fp16": {
+      "file": "model_fp16.tflite",
+      "size_mb": 5.774,
+      "test_accuracy": 1.0,
+      "agreement_with_keras": 1.0,
+      "max_abs_prob_diff": 0.00543975830078125
+    },
+    "int8_dynamic": {
+      "file": "model_int8_dynamic.tflite",
+      "size_mb": 3.161,
+      "test_accuracy": 1.0,
+      "agreement_with_keras": 1.0,
+      "max_abs_prob_diff": 0.0753534585237503
+    }
+  },
+  "training": {
+    "dataset_split_sizes": {
+      "train": 613,
+      "valid": 181,
+      "test": 90
+    },
+    "class_weight": null,
+    "epochs_phase_a": 15,
+    "epochs_phase_b": 15,
+    "best_phase": "B (fine-tuning)",
+    "training_time_seconds": 360.7,
+    "seed": 42
+  },
+  "tensorflow_version": "2.21.0",
+  "keras_version": "3.13.2",
+  "created_at": "2026-11-08T07:23:54+00:00"
+}

@@ -1,100 +1,100 @@
-import 'package:image_picker/image_picker.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
+
+import 'package:agrokaf/core/services/database_service.dart';
+import 'package:agrokaf/core/services/image_service.dart';
 import 'package:agrokaf/features/profile/domain/entities/user_profile.dart';
 import 'package:agrokaf/features/profile/domain/repositories/profile_repository.dart';
-import 'package:agrokaf/features/profile/data/services/file_storage_service.dart';
-import 'package:agrokaf/features/profile/data/services/local_storage_service.dart';
 
+/// Profile stored in the encrypted database (single row, id = 1).
 class ProfileRepositoryImpl implements ProfileRepository {
-  ProfileRepositoryImpl({
-    LocalStorageService? localStorage,
-    FileStorageService? fileStorage,
-  })  : _localStorage = localStorage ?? LocalStorageService.instance,
-        _fileStorage = fileStorage ?? FileStorageService.instance;
+  ProfileRepositoryImpl(this._database, this._images);
 
-  final LocalStorageService _localStorage;
-  final FileStorageService _fileStorage;
+  static const int _rowId = 1;
 
-  static const String _kUserName = 'agrokaf.profile.userName';
-  static const String _kFarmName = 'agrokaf.profile.farmName';
-  static const String _kMunicipality = 'agrokaf.profile.municipality';
-  static const String _kCoffeeVariety = 'agrokaf.profile.coffeeVariety';
-  static const String _kProfileImagePath = 'agrokaf.profile.profileImagePath';
+  final DatabaseService _database;
+  final ImageService _images;
 
   @override
   Future<UserProfile?> getProfile() async {
-    final bool has = await _localStorage.hasSavedProfile();
-    if (!has) return null;
-    final Map<String, String?> fields = await _localStorage.loadProfileFields();
-    final String? userName = fields[_kUserName];
-    final String? farmName = fields[_kFarmName];
-    final String? municipality = fields[_kMunicipality];
-    final String? coffeeVariety = fields[_kCoffeeVariety];
-    final String? profileImagePath = fields[_kProfileImagePath];
-    if (userName == null ||
-        farmName == null ||
-        municipality == null ||
-        coffeeVariety == null ||
-        profileImagePath == null) {
-      return null;
-    }
+    final List<Map<String, Object?>> rows = await _database.db.query(
+      DatabaseService.tableProfile,
+      where: 'id = ?',
+      whereArgs: <Object>[_rowId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final Map<String, Object?> row = rows.first;
     return UserProfile(
-      userName: userName,
-      farmName: farmName,
-      municipality: municipality,
-      coffeeVariety: coffeeVariety,
-      profileImagePath: profileImagePath,
+      userName: row['user_name']! as String,
+      farmName: (row['farm_name'] as String?) ?? '',
+      municipality: row['municipality']! as String,
+      coffeeVariety: (row['coffee_variety'] as String?) ?? '',
+      profileImagePath: row['photo_path'] as String?,
     );
   }
 
   @override
-  Future<bool> saveProfile({
-    required UserProfile profile,
-    XFile? newProfileImage,
+  Future<UserProfile> saveProfile(
+    UserProfile profile, {
+    String? newPhotoSourcePath,
   }) async {
-    try {
-      final String? existingPath = profile.profileImagePath;
-      String? finalImagePath;
-      if (newProfileImage != null) {
-        finalImagePath = await _fileStorage.copyImageToProfileDir(
-          sourceImage: newProfileImage,
-          previousPathToDelete: null,
-        );
-        if (finalImagePath == null) {
-          return false;
-        }
-      } else if (existingPath != null && existingPath.isNotEmpty) {
-        finalImagePath = existingPath;
-      }
-      if (finalImagePath == null || finalImagePath.isEmpty) {
-        return false;
-      }
-      final bool textSaved = await _localStorage.saveProfileFields(
-        userName: profile.userName.trim(),
-        farmName: profile.farmName.trim(),
-        municipality: profile.municipality.trim(),
-        coffeeVariety: profile.coffeeVariety.trim(),
-        profileImagePath: finalImagePath,
+    final UserProfile? previous = await getProfile();
+
+    String? photoPath = profile.profileImagePath;
+    if (newPhotoSourcePath != null) {
+      photoPath = await _images.savePrivateImage(
+        newPhotoSourcePath,
+        ImageFolder.profile,
       );
-      if (!textSaved) {
-        await _fileStorage.deleteProfileImage(finalImagePath);
-        return false;
-      }
-      return true;
-    } catch (_) {
-      return false;
     }
+
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    final Map<String, Object?> values = <String, Object?>{
+      'id': _rowId,
+      'user_name': profile.userName.trim(),
+      'farm_name': _nullIfEmpty(profile.farmName),
+      'municipality': profile.municipality.trim(),
+      'coffee_variety': _nullIfEmpty(profile.coffeeVariety),
+      'photo_path': photoPath,
+      'updated_at': now,
+    };
+
+    try {
+      await _database.db.transaction((Transaction txn) async {
+        final int updated = await txn.update(
+          DatabaseService.tableProfile,
+          values,
+          where: 'id = ?',
+          whereArgs: <Object>[_rowId],
+        );
+        if (updated == 0) {
+          await txn.insert(DatabaseService.tableProfile, <String, Object?>{
+            ...values,
+            'created_at': now,
+          });
+        }
+      });
+    } catch (_) {
+      // Do not leave an orphan photo if the database write failed.
+      if (newPhotoSourcePath != null) await _images.deleteImage(photoPath);
+      rethrow;
+    }
+
+    // Old photo replaced or removed: delete the file.
+    final String? oldPhoto = previous?.profileImagePath;
+    if (oldPhoto != null && oldPhoto != photoPath) {
+      await _images.deleteImage(oldPhoto);
+    }
+    await _images.clearTemporaryFiles();
+
+    return profile.copyWith(
+      profileImagePath: photoPath,
+      clearProfileImage: photoPath == null,
+    );
   }
 
-  @override
-  Future<bool> clearProfile() async {
-    try {
-      final UserProfile? existing = await getProfile();
-      if (existing?.profileImagePath != null) {
-        await _fileStorage.deleteProfileImage(existing!.profileImagePath!);
-      }
-      return _localStorage.clearProfileFields();
-    } catch (_) {
-      return false;
-    }
+  static String? _nullIfEmpty(String value) {
+    final String trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 }

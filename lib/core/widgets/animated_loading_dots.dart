@@ -1,20 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import 'package:agrokaf/core/theme/app_colors.dart';
 import 'package:agrokaf/core/theme/app_spacing.dart';
 
+/// Three dots that pulse in sequence (brand loading indicator).
 class AnimatedLoadingDots extends StatefulWidget {
-  const AnimatedLoadingDots({
-    super.key,
-    this.color,
-    this.dotSize,
-    this.spacing,
-    this.duration = AppAnimations.bounceDot,
-  });
+  const AnimatedLoadingDots({super.key, this.color = AppColors.primary});
 
-  final Color? color;
-  final double? dotSize;
-  final double? spacing;
-  final Duration duration;
+  final Color color;
 
   @override
   State<AnimatedLoadingDots> createState() => _AnimatedLoadingDotsState();
@@ -22,16 +17,13 @@ class AnimatedLoadingDots extends StatefulWidget {
 
 class _AnimatedLoadingDotsState extends State<AnimatedLoadingDots>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+  static const int _dotCount = 3;
+  static const double _phaseShift = 0.2;
 
-  static const List<double> _startDelays = <double>[0.32, 0.16, 0.0];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: widget.duration)
-      ..repeat();
-  }
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: AppDurations.loadingDots,
+  )..repeat();
 
   @override
   void dispose() {
@@ -41,67 +33,41 @@ class _AnimatedLoadingDotsState extends State<AnimatedLoadingDots>
 
   @override
   Widget build(BuildContext context) {
-    final double size = widget.dotSize ?? AppSpacing.dotSize;
-    final double space = widget.spacing ?? AppSpacing.sm;
-    final Color dotColor = widget.color ?? AppColors.primaryContainer;
-
-    return SizedBox(
-      height: AppSpacing.xl,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          for (int i = 0; i < _startDelays.length; i++)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: space / 2),
-              child: _buildDot(i, size, dotColor),
-            ),
-        ],
+    return ExcludeSemantics(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (BuildContext context, Widget? _) {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              for (int i = 0; i < _dotCount; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                  ),
+                  child: Transform.scale(
+                    scale: _scaleFor(i),
+                    child: Container(
+                      width: AppSizes.loadingDot,
+                      height: AppSizes.loadingDot,
+                      decoration: BoxDecoration(
+                        color: widget.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildDot(int index, double size, Color color) {
-    final double total = widget.duration.inMilliseconds.toDouble();
-    final double start = _startDelays[index] * 1000 / total;
-    const double active = 0.4;
-    const double idle = 0.2;
-    final double endInterval = (start + active + idle).clamp(0.0, 1.0);
-
-    final Animation<double> scale =
-        TweenSequence<double>(<TweenSequenceItem<double>>[
-          TweenSequenceItem<double>(
-            tween: Tween<double>(
-              begin: 0,
-              end: 1,
-            ).chain(CurveTween(curve: Curves.easeInOut)),
-            weight: (active / 2) * 100,
-          ),
-          TweenSequenceItem<double>(
-            tween: Tween<double>(
-              begin: 1,
-              end: 0,
-            ).chain(CurveTween(curve: Curves.easeInOut)),
-            weight: (active / 2) * 100,
-          ),
-          TweenSequenceItem<double>(
-            tween: ConstantTween<double>(0),
-            weight: (1 - active) * 100,
-          ),
-        ]).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: Interval(start, endInterval, curve: Curves.linear),
-          ),
-        );
-
-    return ScaleTransition(
-      scale: scale,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
-    );
+  /// Smooth 0.4 -> 1.0 pulse, shifted per dot.
+  double _scaleFor(int index) {
+    final double t = (_controller.value - index * _phaseShift) % 1.0;
+    final double wave = math.sin(t * math.pi).clamp(0.0, 1.0);
+    return 0.4 + 0.6 * wave;
   }
 }

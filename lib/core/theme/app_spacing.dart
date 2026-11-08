@@ -1,74 +1,99 @@
 import 'package:flutter/material.dart';
 
+import 'package:agrokaf/core/theme/app_colors.dart';
+
+/// Spacing scale (4 / 8 / 16 / 24 / 32 / 48).
 class AppSpacing {
   AppSpacing._();
 
-  static const double xs = 4.0;
-  static const double sm = 8.0;
-  static const double md = 12.0;
-  static const double base = 16.0;
-  static const double lg = 24.0;
-  static const double xl = 32.0;
-  static const double xxl = 48.0;
+  static const double xs = 4;
+  static const double sm = 8;
+  static const double md = 16;
+  static const double lg = 24;
+  static const double xl = 32;
+  static const double xxl = 48;
 
-  static const double gutter = 16.0;
-  static const double marginMobile = 16.0;
-  static const double marginDesktop = 64.0;
-
-  static const double radiusSm = 4.0;
-  static const double radiusMd = 8.0;
-  static const double radiusLg = 12.0;
-  static const double radiusXl = 16.0;
-  static const double radius2xl = 24.0;
-  static const double radiusFull = 9999.0;
-
-  static const double dotSize = 12.0;
-  static const double paginationDotActive = 10.0;
-  static const double paginationDotInactive = 8.0;
-  static const double paginationGap = 8.0;
-  static const double logoSizeMobile = 288.0;
-  static const double logoSizeTablet = 320.0;
-  static const double illustrationMaxSize = 320.0;
-
-  static const double tabletBreakpoint = 600.0;
+  /// Horizontal padding of every screen.
+  static const double screen = md;
 }
 
-class AppAnimations {
-  AppAnimations._();
+/// Corner radius scale.
+class AppRadius {
+  AppRadius._();
+
+  static const double sm = 8;
+  static const double md = 12;
+  static const double lg = 16;
+  static const double xl = 24;
+  static const double full = 999;
+
+  static const BorderRadius smAll = BorderRadius.all(Radius.circular(sm));
+  static const BorderRadius mdAll = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius lgAll = BorderRadius.all(Radius.circular(lg));
+  static const BorderRadius xlAll = BorderRadius.all(Radius.circular(xl));
+  static const BorderRadius fullAll = BorderRadius.all(Radius.circular(full));
+}
+
+/// Fixed component sizes.
+class AppSizes {
+  AppSizes._();
+
+  /// Minimum touch target (Material / WCAG guidance).
+  static const double minTouchTarget = 48;
+  static const double buttonHeight = 56;
+
+  static const double iconSm = 20;
+  static const double iconMd = 24;
+  static const double iconLg = 32;
+  static const double iconXl = 56;
+
+  static const double avatarSm = 48;
+  static const double avatarLg = 112;
+
+  static const double logoSplash = 200;
+  static const double logoHeader = 64;
+
+  static const double illustrationMax = 300;
+  static const double contentMaxWidth = 560;
+
+  static const double indicatorDot = 8;
+  static const double indicatorActiveWidth = 24;
+  static const double confidenceBarHeight = 12;
+  static const double loadingDot = 12;
+  static const double sheetHandleWidth = 40;
+  static const double sheetHandleHeight = 4;
+}
+
+/// Animation durations.
+class AppDurations {
+  AppDurations._();
 
   static const Duration fast = Duration(milliseconds: 200);
-  static const Duration medium = Duration(milliseconds: 400);
-  static const Duration slow = Duration(milliseconds: 800);
-  static const Duration fadeInUp = Duration(milliseconds: 1000);
-  static const Duration bounceDot = Duration(milliseconds: 1400);
+  static const Duration medium = Duration(milliseconds: 300);
+  static const Duration slow = Duration(milliseconds: 600);
+  static const Duration entrance = Duration(milliseconds: 800);
+  static const Duration loadingDots = Duration(milliseconds: 1400);
   static const Duration float = Duration(seconds: 6);
-  static const Duration paginationDot = Duration(milliseconds: 300);
+  static const Duration splashMinimum = Duration(milliseconds: 2200);
 }
 
+/// Elevation shadows (soft, low contrast).
 class AppShadows {
   AppShadows._();
 
-  static List<BoxShadow> get logoContainer => [
+  static final List<BoxShadow> card = <BoxShadow>[
     BoxShadow(
-      color: const Color(0xFF1B5E20).withValues(alpha: 0.08),
-      blurRadius: 24,
+      color: AppColors.shadow.withValues(alpha: 0.06),
+      blurRadius: 16,
       offset: const Offset(0, 4),
     ),
   ];
 
-  static List<BoxShadow> get cardSm => [
+  static final List<BoxShadow> elevated = <BoxShadow>[
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.05),
-      blurRadius: 6,
-      offset: const Offset(0, 2),
-    ),
-  ];
-
-  static List<BoxShadow> get buttonSm => [
-    BoxShadow(
-      color: Colors.black.withValues(alpha: 0.06),
-      blurRadius: 4,
-      offset: const Offset(0, 1),
+      color: AppColors.primary.withValues(alpha: 0.12),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
     ),
   ];
 }
